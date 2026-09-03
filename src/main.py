@@ -100,7 +100,7 @@ def play_meme(video_path, cam, pose, detector, threshold):
             display = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
             if res.pose_landmarks:
                 mp.solutions.drawing_utils.draw_landmarks(
-                    display, res.pose_landmarks, mp_pose.POSE_CONNECTIONS,
+                    display, res.pose_landmarks, mp.solutions.pose.POSE_CONNECTIONS,
                     mp.solutions.drawing_utils.DrawingSpec(
                         color=(0, 255, 0), thickness=2, circle_radius=2),
                     mp.solutions.drawing_utils.DrawingSpec(
