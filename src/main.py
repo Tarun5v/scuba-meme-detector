@@ -62,17 +62,31 @@ def draw_hud(frame, hold, score):
 
 
 def play_meme(video_path):
-    """Play the meme video full-window until it ends, is skipped, or quit."""
+    """Play the meme video on a loop until the user stops it.
+
+    Playback is paced to the clip's native frame rate (so it doesn't tear
+    through at full speed) and loops until Q / ESC / Space is pressed.
+    """
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         return False
+
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    if not fps or fps <= 0:
+        fps = 20.0
+    frame_delay = int(round(1000.0 / fps))
+    frame_delay = max(1, min(frame_delay, 100))
+
     cv2.namedWindow("MEME", cv2.WINDOW_AUTOSIZE)
+    cv2.setWindowTitle("MEME", "MEME  (Q/ESC/Space to stop)")
     while True:
         ok, frame = cap.read()
         if not ok:
-            break
+            # Loop: rewind to the start and keep playing.
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            continue
         cv2.imshow("MEME", frame)
-        key = cv2.waitKey(1) & 0xFF
+        key = cv2.waitKey(frame_delay) & 0xFF
         if key in (ord("q"), 27, ord(" ")):
             break
     cap.release()
