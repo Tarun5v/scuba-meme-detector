@@ -26,11 +26,21 @@ from detector import ScubaDetector
 CAP_WIDTH = 1280   # 720p
 CAP_HEIGHT = 720
 TARGET_FPS = 30
-HOLD_FRAMES = 8        # how many frames the pose must hold before triggering
+HOLD_FRAMES = 10       # how many frames the pose must hold before triggering
 COOLDOWN_FRAMES = 60   # minimum gap between triggers (seconds-worth of frames)
+SCUBA_THRESHOLD = 1.0  # detector score that counts as "doing the scuba"
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MEME_VIDEO = os.path.join(ROOT, "assets", "scuba_meme.mp4")
+ASSETS = os.path.join(ROOT, "assets")
+
+
+def find_meme_video():
+    """Locate the meme clip, preferring a real uploaded one over a placeholder."""
+    for name in ("nick_wilde_scuba.mp4", "scuba_meme.mp4"):
+        path = os.path.join(ASSETS, name)
+        if os.path.exists(path):
+            return path
+    return os.path.join(ASSETS, "scuba_meme.mp4")
 
 
 def normalize_frame(frame):
@@ -71,9 +81,11 @@ def play_meme(video_path):
 
 
 def main():
-    if not os.path.exists(MEME_VIDEO):
-        print(f"[!] Could not find meme video at:\n    {MEME_VIDEO}")
-        print("    Add a clip there named scuba_meme.mp4 (see assets/README.md).")
+    meme_video = find_meme_video()
+    if not os.path.exists(meme_video):
+        print(f"[!] Could not find any meme video in {ASSETS}")
+        print("    Add a clip named nick_wilde_scuba.mp4 or scuba_meme.mp4")
+        print("    (see assets/README.md).")
         return 1
 
     cap = cv2.VideoCapture(0)
@@ -117,14 +129,14 @@ def main():
         if cooldown > 0:
             cooldown -= 1
 
-        if score >= 2.0:
+        if score >= SCUBA_THRESHOLD:
             hold += 1
         else:
             hold = 0
 
         if hold >= HOLD_FRAMES and cooldown == 0:
             print("[*] Scuba pose detected! Playing meme...")
-            play_meme(MEME_VIDEO)
+            play_meme(meme_video)
             detector.reset()
             hold = 0
             cooldown = COOLDOWN_FRAMES

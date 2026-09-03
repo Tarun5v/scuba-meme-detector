@@ -1,12 +1,15 @@
 # Assets
 
-Drop your scuba meme video here and name it **`scuba_meme.mp4`**.
+Drop a clip of the viral Scuba / Scooba Dance meme into this folder. The
+application looks for it in this order and plays whichever it finds first:
 
-The application looks for this exact filename at `assets/scuba_meme.mp4` when it
-detects the scuba pose. Any `.mp4` that plays the viral "Scooba Scooba" / Scuba
-Dance trend will work. Keep the clip short (a few seconds) for the best loop
-timing, but longer clips work fine too.
+1. **`nick_wilde_scuba.mp4`** — the meme clip bundled with this project
+   (the viral Nick Wilde reaction GIF/loop).
+2. **`scuba_meme.mp4`** — a general-purpose fallback name for your own clip.
 
-> Note: video files are intentionally excluded from version control (see
-> `.gitignore`) because they are large and typically copyrighted. This folder
-> stays private to your machine.
+Only one is played at trigger time. Feel free to replace these with a clip of
+the exact "Scooba Scooba" / Scuba Dance you want to use.
+
+> Note: Video files are intentionally excluded from version control (see
+> `.gitignore`) because they are large and often copyrighted. These stay
+> private to your machine.

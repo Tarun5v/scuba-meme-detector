@@ -63,12 +63,11 @@ app fires the meme at you.
 
 4. **Add your meme video:**
 
-   Drop a clip of the Scooba / Scuba meme into the `assets/` folder and name it
-   exactly:
+   Drop a clip of the Scooba / Scuba meme into the `assets/` folder. The app
+   plays whichever it finds first:
 
-   ```
-   assets/scuba_meme.mp4
-   ```
+   - `assets/nick_wilde_scuba.mp4` (the clip already bundled with this project)
+   - `assets/scuba_meme.mp4` (a general fallback name for your own clip)
 
    Any `.mp4` of the trend works. A short 3–10 second clip loops best, but
    longer clips also play fine. See `assets/README.md` for details.
@@ -112,11 +111,12 @@ Under the hood this is straightforward landmark geometry — no cloud services.
 MediaPipe Pose returns 33 body landmarks per frame. `src/detector.py` scores how
 strongly the current frame matches the Scuba pose:
 
-1. **Nose plug** — one wrist sitting close to the nose landmark (relative to the
-   torso width, so it works at any distance).
-2. **Free-hand wave** — the opposite wrist is held up and oscillates side to
-   side across recent frames.
-3. **Knee bounce** — the knees spread and dip rhythmically as a secondary check.
+1. **Hand waving** — the core signal. Each wrist is checked to be raised to
+   shoulder level, then its horizontal position is watched across recent frames;
+   a clear side-to-side swing that reverses direction counts as a wave.
+2. **Nose pinch** — a wrist passing close to the nose landmark (relative to the
+   torso width) adds confidence; it's the quick accent in the dance.
+3. **Knee open** — the knees clearly apart and level reinforces the stance.
 
 Each condition adds to a running score. `src/main.py` requires the score to stay
 high for `HOLD_FRAMES` consecutive frames (debounce) before it triggers, then
@@ -132,8 +132,9 @@ isn't registering for you.
 ```
 scooba-meme-detector/
 ├── assets/
-│   ├── README.md           # where to drop scuba_meme.mp4
-│   └── scuba_meme.mp4      # (you add this — git ignored)
+│   ├── README.md              # where the meme clips live
+│   ├── nick_wilde_scuba.mp4   # the bundled meme clip
+│   └── scuba_meme.mp4         # fallback name for your own clip
 ├── src/
 │   ├── detector.py         # scuba pose scoring heuristics
 │   └── main.py             # webcam loop, debounce, meme playback
