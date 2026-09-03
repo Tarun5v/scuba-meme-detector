@@ -82,7 +82,7 @@ def play_meme(video_path, cam, pose, detector, threshold):
     frame_delay = max(1, min(int(round(1000.0 / fps)), 100))
 
     cv2.namedWindow("MEME", cv2.WINDOW_AUTOSIZE)
-    cv2.setWindowTitle("MEME", "MEME")
+    cv2.setWindowTitle("MEME", "")
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
     missing = 0
