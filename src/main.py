@@ -161,6 +161,7 @@ def main():
     cooldown = 0
 
     cv2.namedWindow("SCUBA", cv2.WINDOW_NORMAL)
+    cv2.setWindowTitle("SCUBA", "Camera (q to quit)")
     print("[*] Running. Hold the scuba pose to play the meme. Q to quit.")
 
     while True:
