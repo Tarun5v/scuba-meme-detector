@@ -95,6 +95,18 @@ def play_meme(video_path, cam, pose, detector, threshold):
             res = pose.process(rgb)
             s = detector.score(
                 res.pose_landmarks.landmark, rh) if res.pose_landmarks else 0.0
+            # Keep the live camera feed running in the background while the
+            # meme plays, so dancing is still visible.
+            display = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+            if res.pose_landmarks:
+                mp.solutions.drawing_utils.draw_landmarks(
+                    display, res.pose_landmarks, mp_pose.POSE_CONNECTIONS,
+                    mp.solutions.drawing_utils.DrawingSpec(
+                        color=(0, 255, 0), thickness=2, circle_radius=2),
+                    mp.solutions.drawing_utils.DrawingSpec(
+                        color=(0, 128, 255), thickness=2))
+            draw_hud(display, HOLD_FRAMES if s >= threshold else 0, s)
+            cv2.imshow("SCUBA", display)
         else:
             s = 0.0
 
