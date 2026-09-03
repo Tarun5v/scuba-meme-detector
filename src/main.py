@@ -1,9 +1,8 @@
 """Run the scuba meme detector live from your webcam.
 
 Track your body with MediaPipe pose landmarks in real time. When the app sees
-the Signature "Scooba Scooba" / Scuba Dance move -- one hand pinching the nose
-while the other waves back and forth and the knees bounce -- it plays a local
-meme video, then returns to the live feed.
+the Scuba Dance move -- both arms raised up around the face with a fingertip
+reaching the nose -- it plays a local meme video, then returns to the live feed.
 
 Controls:
   Q / ESC   quit
@@ -18,7 +17,6 @@ import sys
 
 import cv2
 import mediapipe as mp
-import numpy as np
 
 from detector import ScubaDetector
 
@@ -47,18 +45,6 @@ def normalize_frame(frame):
     """Mirror the feed for a selfie view and convert BGR -> RGB."""
     frame = cv2.flip(frame, 1)
     return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-
-def draw_hud(frame, hold, score):
-    """Overlay status text on the camera feed."""
-    label = "scuba" if hold >= HOLD_FRAMES else "tracking"
-    color = (100, 220, 60) if hold >= HOLD_FRAMES else (230, 230, 230)
-    cv2.putText(frame, f"pose: {label}  score: {score:.2f}",
-                (16, 34), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2,
-                cv2.LINE_AA)
-    cv2.putText(frame, "hold the scuba pose to trigger the meme",
-                (16, 64), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (190, 190, 190),
-                1, cv2.LINE_AA)
 
 
 STOP_GRACE_FRAMES = 6  # keep playing this many frames after the pose ends
@@ -95,17 +81,9 @@ def play_meme(video_path, cam, pose, detector, threshold):
             res = pose.process(rgb)
             s = detector.score(
                 res.pose_landmarks.landmark, rh) if res.pose_landmarks else 0.0
-            # Keep the live camera feed running in the background while the
-            # meme plays, so dancing is still visible.
+            # Keep the clean live camera feed running in the background while
+            # the meme plays (no overlays, same as the normal view).
             display = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-            if res.pose_landmarks:
-                mp.solutions.drawing_utils.draw_landmarks(
-                    display, res.pose_landmarks, mp.solutions.pose.POSE_CONNECTIONS,
-                    mp.solutions.drawing_utils.DrawingSpec(
-                        color=(0, 255, 0), thickness=2, circle_radius=2),
-                    mp.solutions.drawing_utils.DrawingSpec(
-                        color=(0, 128, 255), thickness=2))
-            draw_hud(display, HOLD_FRAMES if s >= threshold else 0, s)
             cv2.imshow("SCUBA", display)
         else:
             s = 0.0
@@ -197,17 +175,9 @@ def main():
             cooldown = COOLDOWN_FRAMES
             # Re-show the camera window after the meme closes.
 
-        # Draw landmarks for a bit of visual feedback.
+        # Show the clean camera feed (no overlays) so it just looks like a
+        # normal webcam view while detection runs silently in the background.
         display = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-        if results.pose_landmarks:
-            mp.solutions.drawing_utils.draw_landmarks(
-                display, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
-                mp.solutions.drawing_utils.DrawingSpec(
-                    color=(0, 255, 0), thickness=2, circle_radius=2),
-                mp.solutions.drawing_utils.DrawingSpec(
-                    color=(0, 128, 255), thickness=2))
-
-        draw_hud(display, hold, score)
         cv2.imshow("SCUBA", display)
 
         key = cv2.waitKey(1) & 0xFF
