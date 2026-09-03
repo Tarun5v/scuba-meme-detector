@@ -109,22 +109,21 @@ finishes (or you skip it), you're straight back in the live feed.
 
 Under the hood this is straightforward landmark geometry — no cloud services.
 MediaPipe Pose returns 33 body landmarks per frame. `src/detector.py` scores how
-strongly the current frame matches the real Scuba Dance, which has three
-signature elements:
+strongly the frame matches the Scuba Dance, which is really a **face + hand**
+move:
 
-1. **Nose pinch** — one hand held on the nose, right at that landmark, while the
-   other hand is busy waving (so a hand that's already waving doesn't double
-   count as a pinch). A hand that's simply near the nose without waving still
-   won't, by itself, look like the move.
-2. **Free-hand wave** — the other wrist raised to shoulder level and swinging
-   side to side (watched across recent frames for a direction reversal).
-3. **Knee juke** — the knees rhythmically opening and closing to the beat.
+1. **Face/nose touch** — a hand's fingertips reaching the nose (measured from
+   the fingertips, since those are what actually touch the nose).
+2. **Free-hand wave** — a wrist raised to shoulder level swinging side to side
+   (watched over recent frames for a direction reversal).
 
-A bonus is awarded when one hand is pinching the nose at the same time the other
-waves — the move's most distinctive framing. Each element adds to a running
-score, and `src/main.py` requires the score to stay high for `HOLD_FRAMES`
-consecutive frames (debounce) before it triggers, then enforces a short cooldown
-so it doesn't spam the meme.
+Because the dance is repetitive, the detector **accumulates both signals over a
+short rolling window** instead of demanding they fire on the exact same frame.
+The score climbs when there's been recent nose-touch activity *and* recent
+waving, which is what doing the dance actually looks like. All distances are
+normalized by shoulder width so they work at any camera distance. `src/main.py`
+requires the score to stay high for `HOLD_FRAMES` consecutive frames (debounce)
+before it triggers, then enforces a short cooldown so it doesn't spam the meme.
 
 All thresholds live at the top of each file and are easy to tune if the pose
 isn't registering for you.
