@@ -4,3 +4,7 @@ assets/*
 __pycache__/
 *.pyc
 .venv/
+
+# Local-only dev tools and captured debug shots (not for the repo)
+tools/
+debug_shots/
