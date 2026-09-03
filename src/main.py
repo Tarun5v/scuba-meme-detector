@@ -61,37 +61,63 @@ def draw_hud(frame, hold, score):
                 1, cv2.LINE_AA)
 
 
-def play_meme(video_path):
-    """Play the meme video on a loop until the user stops it.
+STOP_GRACE_FRAMES = 6  # keep playing this many frames after the pose ends
 
-    Playback is paced to the clip's native frame rate (so it doesn't tear
-    through at full speed) and loops until Q / ESC / Space is pressed.
+
+def play_meme(video_path, cam, pose, detector, threshold):
+    """Play the meme while the user keeps doing the scuba pose.
+
+    The webcam is scored on every frame as the clip plays. Playing continues
+    while the pose stays above the threshold, and automatically stops once the
+    user stops dancing (after a short grace period). Q / ESC / Space stops it
+    immediately.
     """
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        return False
+        return "error"
 
     fps = cap.get(cv2.CAP_PROP_FPS)
     if not fps or fps <= 0:
         fps = 20.0
-    frame_delay = int(round(1000.0 / fps))
-    frame_delay = max(1, min(frame_delay, 100))
+    frame_delay = max(1, min(int(round(1000.0 / fps)), 100))
 
     cv2.namedWindow("MEME", cv2.WINDOW_AUTOSIZE)
-    cv2.setWindowTitle("MEME", "MEME  (Q/ESC/Space to stop)")
+    cv2.setWindowTitle("MEME", "MEME  (keeps playing while you scuba)")
+    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+
+    missing = 0
+    result = "ended"
     while True:
+        ok_cam, frame_cam = cam.read()
+        if ok_cam:
+            rgb = normalize_frame(frame_cam)
+            rh = rgb.shape[0]
+            res = pose.process(rgb)
+            s = detector.score(
+                res.pose_landmarks.landmark, rh) if res.pose_landmarks else 0.0
+        else:
+            s = 0.0
+
         ok, frame = cap.read()
         if not ok:
-            # Loop: rewind to the start and keep playing.
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             continue
         cv2.imshow("MEME", frame)
         key = cv2.waitKey(frame_delay) & 0xFF
         if key in (ord("q"), 27, ord(" ")):
+            result = "manual"
             break
+        if s >= threshold:
+            missing = 0
+        else:
+            missing += 1
+            if missing >= STOP_GRACE_FRAMES:
+                result = "ended"
+                break
+
     cap.release()
     cv2.destroyWindow("MEME")
-    return True
+    return result
 
 
 def main():
@@ -149,8 +175,10 @@ def main():
             hold = 0
 
         if hold >= HOLD_FRAMES and cooldown == 0:
-            print("[*] Scuba pose detected! Playing meme...")
-            play_meme(meme_video)
+            print("[*] Scuba pose detected! Playing meme (stops when you stop)...")
+            end_reason = play_meme(
+                meme_video, cap, pose, detector, SCUBA_THRESHOLD)
+            print(f"[*] Meme stopped ({end_reason}).")
             detector.reset()
             hold = 0
             cooldown = COOLDOWN_FRAMES
