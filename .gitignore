@@ -1,5 +1,6 @@
-assets/
-*.mp4
+assets/*
+!assets/README.md
+
 __pycache__/
 *.pyc
 .venv/
