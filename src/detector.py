@@ -32,14 +32,17 @@ RIGHT_INDEX = 20
 LEFT_MIDDLE = 21
 RIGHT_MIDDLE = 22
 
-# Tunable thresholds.
-RAISED_MARGIN = 0.18     # wrist may sit this far below shoulder and still wave
+# Tunable thresholds. These are tuned to recognize the dance naturally -- a
+# hand doesn't have to be held awkwardly above the shoulder to count as waving,
+# and a short near-nose pass is enough -- while still telling a real scuba from
+# just waving a hand around (that distinction lives in nose_plug_distance).
+RAISED_MARGIN = 0.30     # wrist may sit this far below shoulder and still wave
 NOSE_PLUG_DISTANCE = 0.40  # fingertip-to-nose (scale units) = the face gesture
 WAVE_SPREAD = 0.10       # required side-to-side travel (normalized units)
 WAVE_WINDOW = 6          # frames of history used to detect a wave
-NOSE_WINDOW = 15         # frames over which nose-touch evidence is gathered
-WAVE_RATIO = 0.20        # fraction of wave window with motion to count a wave
-NOSE_RATIO = 0.15        # fraction of nose window with a pinch to count it
+NOSE_WINDOW = 10         # frames over which nose-touch evidence is gathered
+WAVE_RATIO = 0.18        # fraction of wave window with motion to count a wave
+NOSE_RATIO = 0.12        # fraction of nose window with a pinch to count it
 
 
 def _distance(a, b):

@@ -26,7 +26,7 @@ from detector import ScubaDetector
 CAP_WIDTH = 1280   # 720p
 CAP_HEIGHT = 720
 TARGET_FPS = 30
-HOLD_FRAMES = 10       # how many frames the pose must hold before triggering
+HOLD_FRAMES = 8        # how many frames the pose must hold before triggering
 COOLDOWN_FRAMES = 60   # minimum gap between triggers (seconds-worth of frames)
 SCUBA_THRESHOLD = 1.5  # detector score that counts as "doing the scuba"
 
