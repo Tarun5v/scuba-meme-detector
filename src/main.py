@@ -28,7 +28,7 @@ CAP_HEIGHT = 720
 TARGET_FPS = 30
 HOLD_FRAMES = 10       # how many frames the pose must hold before triggering
 COOLDOWN_FRAMES = 60   # minimum gap between triggers (seconds-worth of frames)
-SCUBA_THRESHOLD = 1.0  # detector score that counts as "doing the scuba"
+SCUBA_THRESHOLD = 1.5  # detector score that counts as "doing the scuba"
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, "assets")
@@ -82,7 +82,7 @@ def play_meme(video_path, cam, pose, detector, threshold):
     frame_delay = max(1, min(int(round(1000.0 / fps)), 100))
 
     cv2.namedWindow("MEME", cv2.WINDOW_AUTOSIZE)
-    cv2.setWindowTitle("MEME", "MEME  (keeps playing while you scuba)")
+    cv2.setWindowTitle("MEME", "MEME")
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
     missing = 0

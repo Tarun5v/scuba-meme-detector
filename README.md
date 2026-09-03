@@ -109,18 +109,22 @@ finishes (or you skip it), you're straight back in the live feed.
 
 Under the hood this is straightforward landmark geometry — no cloud services.
 MediaPipe Pose returns 33 body landmarks per frame. `src/detector.py` scores how
-strongly the current frame matches the Scuba pose:
+strongly the current frame matches the real Scuba Dance, which has three
+signature elements:
 
-1. **Hand waving** — the core signal. Each wrist is checked to be raised to
-   shoulder level, then its horizontal position is watched across recent frames;
-   a clear side-to-side swing that reverses direction counts as a wave.
-2. **Nose pinch** — a wrist passing close to the nose landmark (relative to the
-   torso width) adds confidence; it's the quick accent in the dance.
-3. **Knee open** — the knees clearly apart and level reinforces the stance.
+1. **Nose pinch** — one hand held on the nose, right at that landmark, while the
+   other hand is busy waving (so a hand that's already waving doesn't double
+   count as a pinch). A hand that's simply near the nose without waving still
+   won't, by itself, look like the move.
+2. **Free-hand wave** — the other wrist raised to shoulder level and swinging
+   side to side (watched across recent frames for a direction reversal).
+3. **Knee juke** — the knees rhythmically opening and closing to the beat.
 
-Each condition adds to a running score. `src/main.py` requires the score to stay
-high for `HOLD_FRAMES` consecutive frames (debounce) before it triggers, then
-enforces a short cooldown so it doesn't spam the meme.
+A bonus is awarded when one hand is pinching the nose at the same time the other
+waves — the move's most distinctive framing. Each element adds to a running
+score, and `src/main.py` requires the score to stay high for `HOLD_FRAMES`
+consecutive frames (debounce) before it triggers, then enforces a short cooldown
+so it doesn't spam the meme.
 
 All thresholds live at the top of each file and are easy to tune if the pose
 isn't registering for you.
