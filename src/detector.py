@@ -2,18 +2,23 @@
 
 This module turns raw MediaPipe pose landmarks into a single "scuba score".
 
-The signature (calibrated against a set of real webcam snapshots) is driven by
-face + hand gestures, not the lower body:
+The signature (calibrated against real webcam recordings of the dance) is a
+face + hand gesture, not the lower body. In the actual dance the person has
+BOTH arms raised up around the face, one hand's fingertips reaching the nose,
+and some small natural motion. A casual one-handed face touch is NOT the move.
 
-  1. One hand's FINGERTIPS come up to the nose (the pinch / face gesture). We
-     measure from the fingertip, not the wrist joint, because the fingertips
-     are what actually reach the nose.
-  2. A hand waves side to side out in front of the face.
+So the score requires:
 
-Because the dance is repetitive, the detector accumulates evidence over a short
-rolling window rather than demanding that both gestures fire on the exact same
-frame. The score climbs when there has been recent nose-touch activity AND
-recent hand-waving, which is what doing the dance actually looks like.
+  1. Both hands raised up (wrists above / near the shoulders) -- this is the
+     "hands up around your face" posture that singles out the scuba from just
+     touching your face with one hand.
+  2. At least one hand's FINGERTIPS reaching the nose (the pinch / face
+     gesture), held over a short window. We measure from the fingertip, not
+     the wrist joint, because the fingertips are what actually reach the nose.
+  3. A small motion bonus -- the free hand sways a little while doing it.
+
+Because the pose is repetitive, evidence is accumulated over a short rolling
+window instead of demanding every condition on the exact same frame.
 
 Distances are measured relative to a per-frame shoulder scale so they behave
 the same regardless of camera distance.
@@ -32,17 +37,16 @@ RIGHT_INDEX = 20
 LEFT_MIDDLE = 21
 RIGHT_MIDDLE = 22
 
-# Tunable thresholds. These are tuned to recognize the dance naturally -- a
-# hand doesn't have to be held awkwardly above the shoulder to count as waving,
-# and a short near-nose pass is enough -- while still telling a real scuba from
-# just waving a hand around (that distinction lives in nose_plug_distance).
-RAISED_MARGIN = 0.30     # wrist may sit this far below shoulder and still wave
-NOSE_PLUG_DISTANCE = 0.40  # fingertip-to-nose (scale units) = the face gesture
-WAVE_SPREAD = 0.10       # required side-to-side travel (normalized units)
-WAVE_WINDOW = 6          # frames of history used to detect a wave
-NOSE_WINDOW = 10         # frames over which nose-touch evidence is gathered
-WAVE_RATIO = 0.18        # fraction of wave window with motion to count a wave
-NOSE_RATIO = 0.12        # fraction of nose window with a pinch to count it
+# Tunable thresholds. The face gesture is the main thing: both hands raised
+# with a fingertip reaching the nose, held over a short window. The wave rule
+# is a loose motion check (small travel counts) used only as a score bonus.
+RAISED_MARGIN = 0.30      # wrist may sit this far below shoulder and still be "up"
+NOSE_PLUG_DISTANCE = 0.42 # fingertip-to-nose (scale units) = the face gesture
+NOSE_WINDOW = 8           # frames over which nose-touch evidence is gathered
+NOSE_RATIO = 0.40         # fraction of nose window with a pinch to count it
+WAVE_SPREAD = 0.025       # small side-to-side travel counts as motion
+WAVE_WINDOW = 6           # frames of history used to detect a small wave
+WAVE_RATIO = 0.30         # fraction of wave window with motion to count it
 
 
 def _distance(a, b):
@@ -106,6 +110,17 @@ class ScubaDetector:
         self._nose.clear()
         self._waved.clear()
 
+    def _score(self, nose_ratio, hand_up, waving):
+        """Pure scoring given the current signals; separate for testability."""
+        if not hand_up:
+            return 0.0
+        score = 0.0
+        if nose_ratio > self.nose_ratio:
+            score += 2.0
+        if waving and nose_ratio > self.nose_ratio:
+            score += 1.0
+        return min(score, 4.0)
+
     def score(self, landmarks, image_height):
         """Return 0.0-4.0 describing how strongly the scuba pose is present.
 
@@ -139,16 +154,22 @@ class ScubaDetector:
         self._nose.append(nose_touch)
         nose_ratio = sum(self._nose) / len(self._nose)
 
-        # ---- 2. Free-hand wave: a wrist oscillating side to side. -----------
+        # ---- 2. Both hands raised + small motion. ---------------------------
         shoulder_y = (landmarks[LEFT_SHOULDER].y
                       + landmarks[RIGHT_SHOULDER].y) / 2.0
         lw = landmarks[LEFT_WRIST]
         rw = landmarks[RIGHT_WRIST]
-        if lw.visibility >= 0.4 and lw.y < shoulder_y + self.raised_margin:
+
+        left_up = lw.visibility >= 0.4 and lw.y < shoulder_y + self.raised_margin
+        right_up = rw.visibility >= 0.4 and rw.y < shoulder_y + self.raised_margin
+        both_up = left_up and right_up
+
+        # Feed the wave detector the raised hand(s) so a small sway counts.
+        if left_up:
             self._left.update(lw.x)
         else:
             self._left.clear()
-        if rw.visibility >= 0.4 and rw.y < shoulder_y + self.raised_margin:
+        if right_up:
             self._right.update(rw.x)
         else:
             self._right.clear()
@@ -157,13 +178,4 @@ class ScubaDetector:
         self._waved.append(waving)
         wave_ratio = sum(self._waved) / len(self._waved)
 
-        # ---- Combine recent evidence into a score. --------------------------
-        score = 0.0
-        if wave_ratio > self.wave_ratio:
-            score += 1.0
-            if nose_ratio > self.nose_ratio:
-                score += 0.5       # both gestures close together = the move
-        if nose_ratio > self.nose_ratio:
-            score += 1.0
-
-        return min(score, 4.0)
+        return self._score(nose_ratio, both_up, waving)
