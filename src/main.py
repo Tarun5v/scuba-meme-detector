@@ -107,6 +107,10 @@ def play_meme(video_path, cam, pose, detector, threshold):
 
     cap.release()
     cv2.destroyWindow("MEME")
+    # macOS/OpenCV: the window close only takes effect after we pump the GUI
+    # event loop once. Without this the meme window lingers for a frame and
+    # the camera view visibly "flickers" when the user stops dancing.
+    cv2.waitKey(1)
     return result
 
 
