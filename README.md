@@ -221,8 +221,9 @@ computer vision.
 
 | Key      | Action                                               |
 | -------- | ---------------------------------------------------- |
+| `R`      | Record a ~5s video of the overlay → `debug_shots/`   |
+| `C`      | Toggle overlay ↔ clean camera view                   |
 | `Space`  | Save a photo snapshot (PNG + JSON breakdown)         |
-| `S`      | Start / stop recording a video of the overlay        |
 | `Q`/`ESC`| Quit                                                 |
 
 Photos and videos land in `debug_shots/`. This tool is local-only and not part
