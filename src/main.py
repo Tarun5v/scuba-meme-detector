@@ -33,8 +33,8 @@ ASSETS = os.path.join(ROOT, "assets")
 
 
 def find_meme_video():
-    """Locate the meme clip, preferring a real, locally-added one."""
-    for name in ("demo.mp4", "nick_wilde_scuba.mp4", "scuba_meme.mp4"):
+    """Locate the meme clip, preferring the bundled reaction clip."""
+    for name in ("nick_wilde_scuba.mp4", "scuba_meme.mp4"):
         path = os.path.join(ASSETS, name)
         if os.path.exists(path):
             return path
