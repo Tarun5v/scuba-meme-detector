@@ -50,16 +50,23 @@ WAVE_RATIO = 0.30         # fraction of wave window with motion to count it
 
 
 def _distance(a, b):
-    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2
+            + (a[2] - b[2]) ** 2) ** 0.5
 
 
 def _shoulder_scale(landmarks):
-    """Per-frame shoulder width so thresholds survive any camera distance."""
+    """Per-frame shoulder width so thresholds survive any camera distance.
+
+    Uses the 3D landmark positions (x, y, z) so the measured width stays the
+    same even when the person turns sideways or stands at an angle to the
+    camera. A side-on pose used to shrink the 2D on-screen shoulder width and
+    silently inflate every normalized distance.
+    """
     ls = landmarks[LEFT_SHOULDER]
     rs = landmarks[RIGHT_SHOULDER]
     if min(ls.visibility, rs.visibility) < 0.4:
         return 0.0
-    width = _distance((ls.x, ls.y), (rs.x, rs.y))
+    width = _distance((ls.x, ls.y, ls.z), (rs.x, rs.y, rs.z))
     return width if width > 0.01 else 0.0
 
 
@@ -136,7 +143,7 @@ class ScubaDetector:
             self.reset()
             return 0.0
 
-        nose_p = (nose.x, nose.y)
+        nose_p = (nose.x, nose.y, nose.z)
 
         # ---- 1. Nose-touch: a fingertip reaching the nose. ------------------
         tips = (
@@ -144,7 +151,7 @@ class ScubaDetector:
             landmarks[LEFT_MIDDLE], landmarks[RIGHT_MIDDLE],
         )
         distances = [
-            _distance(nose_p, (t.x, t.y)) for t in tips
+            _distance(nose_p, (t.x, t.y, t.z)) for t in tips
             if t.visibility >= 0.4
         ]
         nose_touch = (
