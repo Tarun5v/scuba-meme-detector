@@ -17,6 +17,8 @@ fires at you — then stops itself the moment you drop the pose.
 
 ![Camera view](images/screenshot.png)
 
+https://github.com/user-attachments/assets/9f184650-b4b9-42fe-b055-d129eb2255e9
+
 Strike the Scuba pose (both hands up, one fingertip on the nose) and the meme
 plays. Drop the pose and it stops automatically. The normal window is just your
 clean webcam feed, so it feels like a magic camera.
