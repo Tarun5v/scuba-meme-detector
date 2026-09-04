@@ -54,6 +54,10 @@ def _distance(a, b):
             + (a[2] - b[2]) ** 2) ** 0.5
 
 
+def _distance2d(a, b):
+    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+
+
 def _shoulder_scale(landmarks):
     """Per-frame shoulder width so thresholds survive any camera distance.
 
@@ -143,15 +147,19 @@ class ScubaDetector:
             self.reset()
             return 0.0
 
-        nose_p = (nose.x, nose.y, nose.z)
+        nose_p = (nose.x, nose.y)
 
         # ---- 1. Nose-touch: a fingertip reaching the nose. ------------------
+        # Measured in 2D screen space: a fingertip physically on the nose
+        # projects onto the nose on-screen at any camera angle, so using z
+        # here would wrongly inflate the distance (the fingertip sits in
+        # front of the nose along depth) and prevent the pose triggering.
         tips = (
             landmarks[LEFT_INDEX], landmarks[RIGHT_INDEX],
             landmarks[LEFT_MIDDLE], landmarks[RIGHT_MIDDLE],
         )
         distances = [
-            _distance(nose_p, (t.x, t.y, t.z)) for t in tips
+            _distance2d(nose_p, (t.x, t.y)) for t in tips
             if t.visibility >= 0.4
         ]
         nose_touch = (
