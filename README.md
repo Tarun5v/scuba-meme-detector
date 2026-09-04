@@ -15,15 +15,11 @@ fires at you — then stops itself the moment you drop the pose.
 
 ## Demo
 
-![Demo](demo.gif)
+![Camera view](images/screenshot.png)
 
 Strike the Scuba pose (both hands up, one fingertip on the nose) and the meme
 plays. Drop the pose and it stops automatically. The normal window is just your
 clean webcam feed, so it feels like a magic camera.
-
-> **To record your own:** launch `python3 src/main.py`, use [LICEcap](https://www.cockos.com/licecap/)
-> or [ffmpeg](https://ffmpeg.org/) to capture the window, then place the output
-> as `demo.gif` in the repo root.
 
 ---
 
