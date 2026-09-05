@@ -67,8 +67,6 @@ def play_meme(video_path, cam, pose, detector, threshold):
         fps = 20.0
     frame_delay = max(1, min(int(round(1000.0 / fps)), 100))
 
-    cv2.namedWindow("MEME", cv2.WINDOW_AUTOSIZE)
-    cv2.setWindowTitle("MEME", "")
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
     missing = 0
@@ -81,18 +79,25 @@ def play_meme(video_path, cam, pose, detector, threshold):
             res = pose.process(rgb)
             s = detector.score(
                 res.pose_landmarks.landmark, rh) if res.pose_landmarks else 0.0
-            # Keep the clean live camera feed running in the background while
-            # the meme plays (no overlays, same as the normal view).
-            display = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-            cv2.imshow("SCUBA", display)
+            cam_display = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
         else:
             s = 0.0
+            cam_display = None
 
         ok, frame = cap.read()
         if not ok:
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             continue
-        cv2.imshow("MEME", frame)
+
+        # Fill the camera window with the video so the meme plays big.
+        if cam_display is not None:
+            frame = cv2.resize(frame, (cam_display.shape[1],
+                                       cam_display.shape[0]))
+
+        # Render the video straight into the one camera window. Using a single
+        # window avoids the macOS ghost frame / flicker that a separate pop-up
+        # "MEME" window leaves behind when it is closed.
+        cv2.imshow("SCUBA", frame)
         key = cv2.waitKey(frame_delay) & 0xFF
         if key in (ord("q"), 27, ord(" ")):
             result = "manual"
@@ -106,15 +111,6 @@ def play_meme(video_path, cam, pose, detector, threshold):
                 break
 
     cap.release()
-    cv2.destroyWindow("MEME")
-    # macOS/OpenCV: the window close only takes effect after we pump the GUI
-    # event loop, and the last video frame can linger as a ghost where the
-    # video window was. Re-render a fresh camera frame over that region and
-    # pump the event loop a few times so macOS fully clears the video frame.
-    if ok_cam:
-        cv2.imshow("SCUBA", display)
-    for _ in range(5):
-        cv2.waitKey(1)
     return result
 
 
