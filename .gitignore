@@ -1,5 +1,8 @@
 assets/*
 !assets/README.md
+!assets/nick_wilde_scuba.mp4
+!assets/scuba_meme.m4a
+!assets/scuba_meme.wav
 
 __pycache__/
 *.pyc

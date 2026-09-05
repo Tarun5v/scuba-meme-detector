@@ -42,9 +42,9 @@ def find_meme_video():
 
 
 def find_audio():
-    """Locate the accompanying audio clip (mp3/m4a/wav)."""
-    for name in ("scuba_meme.m4a", "scuba_meme.mp3", "scuba.mp3",
-                 "scuba_meme.wav"):
+    """Locate the accompanying audio clip (pre-decoded wav preferred)."""
+    for name in ("scuba_meme.wav", "scuba_meme.m4a", "scuba_meme.mp3",
+                 "scuba.mp3"):
         path = os.path.join(ASSETS, name)
         if os.path.exists(path):
             return path
@@ -89,8 +89,14 @@ def _read_pcm_wav(path):
 
 
 def load_audio(path):
-    """Decode the audio clip to 16-bit PCM for the sounddevice stream."""
+    """Read audio as PCM samples for the sounddevice stream.
+
+    A pre-decoded scuba_meme.wav is read directly. For m4a/mp3 sources, macOS
+    afconvert decodes them (cached) so no extra Python dependencies are needed.
+    """
     try:
+        if path.endswith(".wav"):
+            return _read_pcm_wav(path)
         import subprocess
         cache = os.path.join(ASSETS, ".scuba_meme_pcm.wav")
         if (not os.path.exists(cache) or
