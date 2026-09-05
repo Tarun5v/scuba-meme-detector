@@ -96,8 +96,9 @@ def _read_pcm_wav(path):
 def load_audio(path):
     """Read audio as PCM samples for the sounddevice stream.
 
-    A pre-decoded scuba_meme.wav is read directly. For m4a/mp3 sources, macOS
-    afconvert decodes them (cached) so no extra Python dependencies are needed.
+    A pre-decoded scuba_meme.wav is read directly. For m4a/mp3 sources,
+    afconvert (macOS) or ffmpeg (any OS) decodes them, cached, so no extra
+    Python dependencies are needed.
     """
     try:
         if path.endswith(".wav"):
@@ -106,9 +107,18 @@ def load_audio(path):
         cache = os.path.join(ASSETS, ".scuba_meme_pcm.wav")
         if (not os.path.exists(cache) or
                 os.path.getmtime(path) > os.path.getmtime(cache)):
-            subprocess.run(
-                ["afconvert", "-f", "WAVE", "-d", "LEI16@44100", path, cache],
-                check=True, capture_output=True)
+            cmd = None
+            for decoder in (["afconvert", "-f", "WAVE", "-d",
+                             "LEI16@44100", path, cache],
+                            ["ffmpeg", "-y", "-i", path, cache]):
+                try:
+                    subprocess.run(decoder, check=True, capture_output=True)
+                    cmd = decoder
+                    break
+                except FileNotFoundError:
+                    continue
+            if cmd is None:
+                return None
         return _read_pcm_wav(cache)
     except Exception:
         return None
