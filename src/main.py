@@ -27,6 +27,7 @@ TARGET_FPS = 30
 HOLD_FRAMES = 8        # how many frames the pose must hold before triggering
 COOLDOWN_FRAMES = 60   # minimum gap between triggers (seconds-worth of frames)
 SCUBA_THRESHOLD = 1.5  # detector score that counts as "doing the scuba"
+AUDIO_VOLUME = 0.5     # playback gain applied to the soundtrack
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, "assets")
@@ -85,6 +86,10 @@ def _read_pcm_wav(path):
     samples = np.frombuffer(data, dtype="<i2").astype(np.float32)
     if channels > 1:
         samples = samples.reshape(-1, channels)
+    # Normalize to a healthy loudness so loud source clips don't blast out.
+    peak = np.abs(samples).max()
+    if peak > 0:
+        samples = samples * (0.95 / peak)
     return rate, samples
 
 
@@ -132,7 +137,7 @@ def play_meme(video_path, cam, pose, detector, threshold, audio=None):
         try:
             import sounddevice as sd
             rate, samples = audio
-            sd.play(samples, rate)
+            sd.play(samples * AUDIO_VOLUME, rate)
             stream = sd
         except Exception:
             stream = None
