@@ -17,6 +17,7 @@ import sys
 
 import cv2
 import mediapipe as mp
+import numpy as np
 
 from detector import ScubaDetector
 
@@ -90,10 +91,16 @@ def play_meme(video_path, cam, pose, detector, threshold):
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             continue
 
-        # Play the video at a medium size in the camera window.
+        # Play the video at a medium size, centered on a black background that
+        # matches the camera window so no white gap shows around it.
         if cam_display is not None:
             frame = cv2.resize(
                 frame, (MEME_SIZE, MEME_SIZE), interpolation=cv2.INTER_LINEAR)
+            canvas = np.zeros_like(cam_display)
+            y0, x0 = (canvas.shape[0] - MEME_SIZE) // 2, \
+                     (canvas.shape[1] - MEME_SIZE) // 2
+            canvas[y0:y0 + MEME_SIZE, x0:x0 + MEME_SIZE] = frame
+            frame = canvas
 
         # Render the video straight into the one camera window. Using a single
         # window avoids the macOS ghost frame / flicker that a separate pop-up
