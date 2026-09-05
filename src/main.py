@@ -24,7 +24,7 @@ from detector import ScubaDetector
 # --- Tuning -----------------------------------------------------------
 CAP_WIDTH = 1280   # 720p
 CAP_HEIGHT = 720
-MEME_SIZE = 640    # play the video at this size in the camera window
+MEME_SIZE = 300    # play the video at its original native size
 TARGET_FPS = 30
 HOLD_FRAMES = 8        # how many frames the pose must hold before triggering
 COOLDOWN_FRAMES = 60   # minimum gap between triggers (seconds-worth of frames)
