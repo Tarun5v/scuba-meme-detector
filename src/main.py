@@ -41,6 +41,68 @@ def find_meme_video():
     return os.path.join(ASSETS, "scuba_meme.mp4")
 
 
+def find_audio():
+    """Locate the accompanying audio clip (mp3/m4a/wav)."""
+    for name in ("scuba_meme.m4a", "scuba_meme.mp3", "scuba.mp3",
+                 "scuba_meme.wav"):
+        path = os.path.join(ASSETS, name)
+        if os.path.exists(path):
+            return path
+    return None
+
+
+def _read_pcm_wav(path):
+    """Read a 16-bit PCM WAV (handles WAVE_FORMAT_EXTENSIBLE from afconvert)."""
+    import struct
+    import wave
+    with open(path, "rb") as f:
+        head = f.read(12)
+        if head[:4] != b"RIFF":
+            return None, None
+        data = None
+        rate = None
+        channels = 1
+        while True:
+            chunk = f.read(8)
+            if len(chunk) < 8:
+                break
+            size = struct.unpack("<I", chunk[4:8])[0]
+            if chunk[:4] == b"fmt ":
+                fmt = f.read(size)
+                rate = struct.unpack("<I", fmt[4:8])[0]
+                channels = struct.unpack("<H", fmt[2:4])[0]
+                f.seek(0, 1)
+            elif chunk[:4] == b"data":
+                data = f.read(size)
+                break
+            else:
+                f.seek(size, 1)
+            if size % 2:
+                f.seek(1, 1)
+    if data is None or rate is None:
+        return None, None
+    import numpy as np
+    samples = np.frombuffer(data, dtype="<i2").astype(np.float32)
+    if channels > 1:
+        samples = samples.reshape(-1, channels)
+    return rate, samples
+
+
+def load_audio(path):
+    """Decode the audio clip to 16-bit PCM for the sounddevice stream."""
+    try:
+        import subprocess
+        cache = os.path.join(ASSETS, ".scuba_meme_pcm.wav")
+        if (not os.path.exists(cache) or
+                os.path.getmtime(path) > os.path.getmtime(cache)):
+            subprocess.run(
+                ["afconvert", "-f", "WAVE", "-d", "LEI16@44100", path, cache],
+                check=True, capture_output=True)
+        return _read_pcm_wav(cache)
+    except Exception:
+        return None
+
+
 def normalize_frame(frame):
     """Mirror the feed for a selfie view and convert BGR -> RGB."""
     frame = cv2.flip(frame, 1)
@@ -50,16 +112,29 @@ def normalize_frame(frame):
 STOP_GRACE_FRAMES = 6  # keep playing this many frames after the pose ends
 
 
-def play_meme(video_path, cam, pose, detector, threshold):
+def play_meme(video_path, cam, pose, detector, threshold, audio=None):
     """Play the meme while the user keeps doing the scuba pose.
 
     The webcam is scored on every frame as the clip plays. Playing continues
     while the pose stays above the threshold, and automatically stops once the
     user stops dancing (after a short grace period). Q / ESC / Space stops it
-    immediately.
+    immediately. If `audio` (rate, samples) is given, it plays alongside the
+    video and stops at the same time.
     """
+    stream = None
+    if audio is not None:
+        try:
+            import sounddevice as sd
+            rate, samples = audio
+            sd.play(samples, rate)
+            stream = sd
+        except Exception:
+            stream = None
+
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
+        if stream is not None:
+            stream.stop()
         return "error"
 
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -106,6 +181,8 @@ def play_meme(video_path, cam, pose, detector, threshold):
                 break
 
     cap.release()
+    if stream is not None:
+        stream.stop()
     cv2.destroyWindow("MEME")
     return result
 
@@ -138,6 +215,14 @@ def main():
     hold = 0
     cooldown = 0
 
+    audio_path = find_audio()
+    audio = None
+    if audio_path:
+        print(f"[*] Audio: {os.path.basename(audio_path)}")
+        audio = load_audio(audio_path)
+        if not audio:
+            print("    (could not decode audio; playing silent)")
+
     cv2.namedWindow("SCUBA", cv2.WINDOW_NORMAL)
     cv2.setWindowTitle("SCUBA", "Camera (q to quit)")
     print("[*] Running. Hold the scuba pose to play the meme. Q to quit.")
@@ -168,12 +253,11 @@ def main():
         if hold >= HOLD_FRAMES and cooldown == 0:
             print("[*] Scuba pose detected! Playing meme (stops when you stop)...")
             end_reason = play_meme(
-                meme_video, cap, pose, detector, SCUBA_THRESHOLD)
+                meme_video, cap, pose, detector, SCUBA_THRESHOLD, audio)
             print(f"[*] Meme stopped ({end_reason}).")
             detector.reset()
             hold = 0
             cooldown = COOLDOWN_FRAMES
-            # Re-show the camera window after the meme closes.
 
         # Show the clean camera feed (no overlays) so it just looks like a
         # normal webcam view while detection runs silently in the background.
