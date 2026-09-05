@@ -23,6 +23,7 @@ from detector import ScubaDetector
 # --- Tuning -----------------------------------------------------------
 CAP_WIDTH = 1280   # 720p
 CAP_HEIGHT = 720
+MEME_SIZE = 640    # play the video at this size in the camera window
 TARGET_FPS = 30
 HOLD_FRAMES = 8        # how many frames the pose must hold before triggering
 COOLDOWN_FRAMES = 60   # minimum gap between triggers (seconds-worth of frames)
@@ -89,10 +90,10 @@ def play_meme(video_path, cam, pose, detector, threshold):
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             continue
 
-        # Fill the camera window with the video so the meme plays big.
+        # Play the video at a medium size in the camera window.
         if cam_display is not None:
-            frame = cv2.resize(frame, (cam_display.shape[1],
-                                       cam_display.shape[0]))
+            frame = cv2.resize(
+                frame, (MEME_SIZE, MEME_SIZE), interpolation=cv2.INTER_LINEAR)
 
         # Render the video straight into the one camera window. Using a single
         # window avoids the macOS ghost frame / flicker that a separate pop-up
