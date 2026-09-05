@@ -17,14 +17,12 @@ import sys
 
 import cv2
 import mediapipe as mp
-import numpy as np
 
 from detector import ScubaDetector
 
 # --- Tuning -----------------------------------------------------------
 CAP_WIDTH = 1280   # 720p
 CAP_HEIGHT = 720
-MEME_SIZE = 300    # play the video at its original native size
 TARGET_FPS = 30
 HOLD_FRAMES = 8        # how many frames the pose must hold before triggering
 COOLDOWN_FRAMES = 60   # minimum gap between triggers (seconds-worth of frames)
@@ -69,6 +67,8 @@ def play_meme(video_path, cam, pose, detector, threshold):
         fps = 20.0
     frame_delay = max(1, min(int(round(1000.0 / fps)), 100))
 
+    cv2.namedWindow("MEME", cv2.WINDOW_AUTOSIZE)
+    cv2.setWindowTitle("MEME", "")
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
     missing = 0
@@ -81,31 +81,18 @@ def play_meme(video_path, cam, pose, detector, threshold):
             res = pose.process(rgb)
             s = detector.score(
                 res.pose_landmarks.landmark, rh) if res.pose_landmarks else 0.0
-            cam_display = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+            # Keep the clean live camera feed running in the background while
+            # the meme plays (no overlays, same as the normal view).
+            display = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+            cv2.imshow("SCUBA", display)
         else:
             s = 0.0
-            cam_display = None
 
         ok, frame = cap.read()
         if not ok:
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             continue
-
-        # Play the video at a medium size, centered on a black background that
-        # matches the camera window so no white gap shows around it.
-        if cam_display is not None:
-            frame = cv2.resize(
-                frame, (MEME_SIZE, MEME_SIZE), interpolation=cv2.INTER_LINEAR)
-            canvas = np.zeros_like(cam_display)
-            y0, x0 = (canvas.shape[0] - MEME_SIZE) // 2, \
-                     (canvas.shape[1] - MEME_SIZE) // 2
-            canvas[y0:y0 + MEME_SIZE, x0:x0 + MEME_SIZE] = frame
-            frame = canvas
-
-        # Render the video straight into the one camera window. Using a single
-        # window avoids the macOS ghost frame / flicker that a separate pop-up
-        # "MEME" window leaves behind when it is closed.
-        cv2.imshow("SCUBA", frame)
+        cv2.imshow("MEME", frame)
         key = cv2.waitKey(frame_delay) & 0xFF
         if key in (ord("q"), 27, ord(" ")):
             result = "manual"
@@ -119,6 +106,7 @@ def play_meme(video_path, cam, pose, detector, threshold):
                 break
 
     cap.release()
+    cv2.destroyWindow("MEME")
     return result
 
 
